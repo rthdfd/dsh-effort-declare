@@ -1,0 +1,5 @@
+# dsh-effort-declare bundle patch：把插件挂进 profile 的层栈。
+# 运行时默认值在插件代码里；用户可在自己的 profile patch 行里用同一个 id 覆盖 config。
+- insert:
+    - id: effort-declare
+      name: 'dsh-effort-declare'
