@@ -1,7 +1,17 @@
 # dsh-effort-declare
 
-给 dsh 的**第三方模型**补上思考档位声明——默认就是 **DeepSeek 同款的 `off` / `low` / `high` / `max`**。
-补上之后，模型选择器里出现 **Effort 菜单**，随时可以调整思考强度。
+让**第三方模型**拥有思考档位——**零配置，装完即用**。默认档位就是 **DeepSeek 同款
+`off` / `low` / `high` / `max`**，模型选择器里随即出现 **Effort 菜单**，随时调整思考强度。
+
+## 装完自动做什么
+
+1. 读取 settings 里的 `llm-pi-ai` 用户分节；
+2. 给所有**手填了 `models` 列表**的 provider 的模型补上 `reasoningEfforts`
+   （缺省才补，不覆盖已有声明）；
+3. 经 settings 服务写回并持久化，**live 生效**，不需要重启。
+
+只增不改：不碰其它字段，不新增 / 删除模型条目；写入失败时把待并片段写到
+`~/.dsh-effort-declare.guide.json`，可手动并入 `settings.yaml`。
 
 ## 为什么需要
 
@@ -13,62 +23,37 @@ dsh 的模型选择器只为「声明了 `reasoningEfforts` 的模型」显示 E
 
 DeepSeek 自家路由已自带 `off` / `low` / `high` / `max`——本插件把同一套补给第三方模型。
 
-## 工作原理
-
-1. 读取本机 settings 的 `llm-pi-ai` **用户分节**（未脱敏原始值）；
-2. 给配置指定的 provider / 模型条目补上 `reasoningEfforts`（**缺省才补**，不覆盖已有声明）；
-3. 经 settings 服务写回并持久化，**live 生效**（不需要重启）。
-
-只增不改：不碰其它 provider，不新增 / 删除模型条目；写入失败时会把待并片段写到
-`~/.dsh-effort-declare.guide.json`，可手动并入 `settings.yaml`。
-
 ## 安装
 
-- **DSHA**：在插件市场粘贴本仓库链接安装（或下载发布包后用「导入插件包」）。
-- **其他 dsh 环境**：把包安装进 profile 依赖，由 `cordis.patch.yml` 自动挂载。
+- **DSHA**：插件市场粘贴本仓库链接安装；
+- **命令行**：`dsh plugin add github:rthdfd/dsh-effort-declare`
 
-## 配置
+装完重启 Web，日志出现 `[dsh-effort-declare] 已为 N 个模型补上思考档位：…` 即生效。
 
-```yaml
-- id: effort-declare
-  name: 'dsh-effort-declare'
-  config:
-    providers:
-      my-gateway:              # settings.yaml 里 llm-pi-ai.providers 的键
-        models: '*'            # '*' | ['id1', 'id2'] | 'id'
-        # levels:              # 该 provider 单独覆盖档位（可不填）
-        #   off:
-        #   low: low
-        #   high: high
-        #   max: max
-    # overwrite: false         # 已有 reasoningEfforts 的模型是否覆盖
-    # mode: apply              # apply = 自动写入；guide = 只生成片段
-```
+## 可选配置（一般不用动）
 
 | 字段 | 默认 | 说明 |
 |---|---|---|
-| `providers` | `{}` | 要处理的 provider 路由与模型范围 |
-| `providers.<p>.models` | `'*'` | `'*'` 全部 / `['id',…]` 指定 / `'id'` 单个 |
-| `providers.<p>.levels` | 见下 | 该 provider 的档位覆盖 |
+| `providers` | `'auto'` | 默认处理所有手填 models 的 provider；也可写成对象收窄 |
 | `levels` | `{off: null, low: low, high: high, max: max}` | 默认档位（**档位 → 发送值**，`off` 空值 = 不发送参数） |
 | `overwrite` | `false` | 是否覆盖已有声明 |
-| `mode` | `apply` | `apply` 自动写入；`guide` 只输出片段不写入 |
+| `mode` | `apply` | `guide` = 只输出片段、不写入 |
 
-### 档位与发送值
-
-键是**菜单里显示的档位**，值是**真正发出去的拼写**。网关词汇不同就在 `levels` 里改名，例如：
+收窄 + 改发送值示例（比如网关只认 `xhigh`）：
 
 ```yaml
-        levels:
-          off:
-          low: low
-          high: high
-          max: xhigh        # 网关只认 xhigh 时：max 档发送 xhigh
+providers:
+  my-gateway:
+    models: '*'
+    levels:
+      off:
+      low: low
+      high: high
+      max: xhigh
 ```
 
 ## 已知限制
 
-- 只处理**用户分节里手填了 `models` 列表**的 provider；完全依赖内置目录的 provider 无处可补。
 - 补的档位是否被网关接受，取决于端点本身对 `reasoning_effort`（或 responses 的 `reasoning`）的支持；
   发出去报错时，用 `levels` 改成网关真实认的拼写即可。
 - DeepSeek 官方路由不需要本插件（自带四档）。
@@ -79,5 +64,3 @@ DeepSeek 自家路由已自带 `off` / `low` / `high` / `max`——本插件把�
 ```bash
 node test/smoke.mjs
 ```
-
-冒烟测试覆盖：补档位 / 跳过已有声明 / 过滤器 / overwrite / guide 模式 / 未配置 provider 不写入。

@@ -1,7 +1,7 @@
 {
   "name": "dsh-effort-declare",
-  "version": "0.1.0",
-  "description": "给 dsh 的第三方模型补上思考档位声明（默认 DeepSeek 同款 off/low/high/max），模型选择器即出现 Effort 菜单，可随时调整思考强度",
+  "version": "0.2.0",
+  "description": "零配置：自动给第三方模型补上思考档位（默认 DeepSeek 同款 off/low/high/max），模型选择器即出现 Effort 菜单",
   "license": "MIT",
   "type": "module",
   "main": "lib/index.js",
